@@ -1,186 +1,236 @@
+class Tiles:
+    def __init__(self, screen, start_position_x, start_position_y, num, mat_pos_x, mat_pos_y):
+        self.color = (0, 255, 0)
+        self.screen = screen
+        self.start_pos_x = start_position_x
+        self.start_pos_y = start_position_y
+        self.num = num
+        self.width = tile_width
+        self.depth = tile_depth
+        self.selected = False
+        self.position_x = mat_pos_x
+        self.position_y = mat_pos_y
+        self.movable = False
+        
+
+    def draw_tyle(self):
+        pygame.draw.rect(self.screen, self.color, pygame.Rect(self.start_pos_x, self.start_pos_y, self.width, self.depth))
+        numb = font.render(str(self.num), True, (125, 55, 100))        
+        screen.blit(numb, (self.start_pos_x + 40, self.start_pos_y + 10))
+
+    def mouse_hover(self, x_m_motion, y_m_motion):
+        if x_m_motion > self.start_pos_x and x_m_motion < self.start_pos_x + self.width and y_m_motion > self.start_pos_y and y_m_motion < self.start_pos_y + self.depth:
+            self.color = (255, 255, 255)
+        else:
+            self.color = (255, 165, 0)
+
+    def mouse_click(self, x_m_click, y_m_click):
+        if x_m_click > self.start_pos_x and x_m_click < self.start_pos_x + self.width and y_m_click > self.start_pos_y and y_m_click < self.start_pos_y + self.depth:
+            self.selected = True
+        else:
+            self.selected = False
+
+    def mouse_click_release(self, x_m_click_rel, y_m_click_rel):
+        if x_m_click_rel > 0 and y_m_click_rel > 0:
+            self.selected = False
+
+    def move_tyle(self, x_m_motion, y_m_motion):
+        self.start_pos_x = x_m_motion
+        self.start_pos_y = y_m_motion
+        
+def create_tyles():
+    i = 1
+    while i <= tile_count:
+        r = random.randint(1, tile_count)
+        if r not in tile_no:
+            tile_no.append(r)
+            i += 1
+    tile_no.append("")
+    k = 0
+    for i in range(0, rows):
+        for j in range(0, cols):
+            if (i == rows - 1) and (j == cols - 1):
+                pass
+            else:
+                t = Tiles(screen, tile_print_position[(i, j)][0], tile_print_position[(i, j)][1], tile_no[k],i, j)
+                tiles.append(t)
+            matrix[i][j] = tile_no[k]
+            k += 1
+    check_mobility()
+
+def check_mobility():
+    for i in range(tile_count):
+        tile = tiles[i]
+        row_index = tile.position_x
+        col_index = tile.position_y
+        adjacent_cells = []
+        adjacent_cells.append([row_index-1, col_index, False]) # north
+        adjacent_cells.append([row_index+1, col_index, False]) # south
+        adjacent_cells.append([row_index, col_index-1, False]) # east
+        adjacent_cells.append([row_index, col_index+1, False]) # west
+        for i in range(len(adjacent_cells)):
+            if (adjacent_cells[i][0] >= 0 and adjacent_cells[i][0] < rows) and (adjacent_cells[i][1] >= 0 and adjacent_cells[i][1] < cols):
+                adjacent_cells[i][2] = True
+
+        for j in range(len(adjacent_cells)):
+            if adjacent_cells[j][2]:
+                adj_cell_row = adjacent_cells[j][0]
+                adj_cell_col = adjacent_cells[j][1]
+                for k in range(tile_count):
+                    if adj_cell_row == tiles[k].position_x and adj_cell_col == tiles[k].position_y:
+                        adjacent_cells[j][2] = False
+
+                false_count = 0
+
+                for m in range(len(adjacent_cells)):
+                    if adjacent_cells[m][2]:
+                        tile.movable = True
+                        break
+                    else:
+                        false_count += 1
+
+                if false_count == 4:
+                    tile.movable = False
+
+def isGameOver():
+    global game_over, game_over_banner
+    allcelldata = ""
+    for i in range(rows):
+        for j in range(cols):
+            allcelldata = allcelldata + str(matrix[i][j])
+
+    if allcelldata == "12345678 ":
+        game_over = True
+        game_over_banner = "Game Over"
+
+        print("Game Over")
+
+        for i in range(tile_count):
+            tiles[i].movable = False
+            tiles[i].selected = False
+
+#driver code
 import pygame
+import pyautogui
 import random
-import time
-from sprite import *
-from settings import *
 
+page_width, page_depth = pyautogui.size()
+page_width = int(page_width * .95)
+page_depth = int(page_depth * .95)
 
-class Game:
-    def __init__(self):
-        pygame.init()
-        self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
-        pygame.display.set_caption(title)
-        self.clock = pygame.time.Clock()
-        self.shuffle_time = 0
-        self.start_shuffle = False
-        self.previous_choice = ""
-        self.start_game = False
-        self.start_timer = False
-        self.elapsed_time = 0
-        self.high_score = float(self.get_high_scores()[0])
+tiles = []
+tile_width = 200
+tile_depth = 200
 
-    def get_high_scores(self):
-        with open("high_score.txt", "r") as file:
-            scores = file.read().splitlines()
-        return scores
+rows, cols = (3, 3)
+tile_count = rows * cols - 1
+matrix = [["" for i in range(cols)] for j in range(rows)]
+tile_no = []
+tile_print_position = {(0, 0): (100, 50),
+(0, 1): (305, 50),
+(0, 2): (510, 50),
+(1, 0): (100, 255),
+(1, 1): (305, 255),
+(1, 2): (510, 255),
+(2, 0): (100, 460),
+(2, 1): (305, 460),
+(2, 2): (510, 460)}
 
-    def save_score(self):
-        with open("high_score.txt", "w") as file:
-            file.write(str("%.3f\n" % self.high_score))
+mouse_press = False
+x_m_click, y_m_click = 0, 0
+x_m_click_rel, y_m_click_rel = 0, 0
 
-    def create_game(self):
-        grid = [[x + y * GAME_SIZE for x in range(1, GAME_SIZE + 1)] for y in range(GAME_SIZE)]
-        grid[-1][-1] = 0
-        return grid
+pygame.init()
+screen = pygame.display.set_mode((page_width, page_depth))
+pygame.display.set_caption("Slide Game")
 
-    def shuffle(self):
-        possible_moves = []
-        for row, tiles in enumerate(self.tiles):
-            for col, tile in enumerate(tiles):
-                if tile.text == "empty":
-                    if tile.right():
-                        possible_moves.append("right")
-                    if tile.left():
-                        possible_moves.append("left")
-                    if tile.up():
-                        possible_moves.append("up")
-                    if tile.down():
-                        possible_moves.append("down")
-                    break
-            if len(possible_moves) > 0:
-                break
+font = pygame.font.Font('freesansbold.ttf', 200)
 
-        if self.previous_choice == "right":
-            possible_moves.remove("left") if "left" in possible_moves else possible_moves
-        elif self.previous_choice == "left":
-            possible_moves.remove("right") if "right" in possible_moves else possible_moves
-        elif self.previous_choice == "up":
-            possible_moves.remove("down") if "down" in possible_moves else possible_moves
-        elif self.previous_choice == "down":
-            possible_moves.remove("up") if "up" in possible_moves else possible_moves
+game_over = False
+game_over_banner = ""
+game_over_font = pygame.font.Font('freesansbold.ttf', 70)
 
-        choice = random.choice(possible_moves)
-        self.previous_choice = choice
-        if choice == "right":
-            self.tiles_grid[row][col], self.tiles_grid[row][col + 1] = self.tiles_grid[row][col + 1], \
-                                                                       self.tiles_grid[row][col]
-        elif choice == "left":
-            self.tiles_grid[row][col], self.tiles_grid[row][col - 1] = self.tiles_grid[row][col - 1], \
-                                                                       self.tiles_grid[row][col]
-        elif choice == "up":
-            self.tiles_grid[row][col], self.tiles_grid[row - 1][col] = self.tiles_grid[row - 1][col], \
-                                                                       self.tiles_grid[row][col]
-        elif choice == "down":
-            self.tiles_grid[row][col], self.tiles_grid[row + 1][col] = self.tiles_grid[row + 1][col], \
-                                                                       self.tiles_grid[row][col]
+move_count = 0
+move_count_banner = "Moves: "
+move_count_font = pygame.font.Font('freesansbold.ttf', 40)
 
-    def draw_tiles(self):
-        self.tiles = []
-        for row, x in enumerate(self.tiles_grid):
-            self.tiles.append([])
-            for col, tile in enumerate(x):
-                if tile != 0:
-                    self.tiles[row].append(Tile(self, col, row, str(tile)))
-                else:
-                    self.tiles[row].append(Tile(self, col, row, "empty"))
+create_tyles()
 
-    def new(self):
-        self.all_sprites = pygame.sprite.Group()
-        self.tiles_grid = self.create_game()
-        self.tiles_grid_completed = self.create_game()
-        self.elapsed_time = 0
-        self.start_timer = False
-        self.start_game = False
-        self.buttons_list = []
-        self.buttons_list.append(Button(500, 100, 200, 50, "Shuffle", WHITE, BLACK))
-        self.buttons_list.append(Button(500, 170, 200, 50, "Reset", WHITE, BLACK))
-        self.draw_tiles()
+running = True
 
-    def run(self):
-        self.playing = True
-        while self.playing:
-            self.clock.tick(FPS)
-            self.events()
-            self.update()
-            self.draw()
+while running:
+    screen.fill((0, 0, 0))
 
-    def update(self):
-        if self.start_game:
-            if self.tiles_grid == self.tiles_grid_completed:
-                self.start_game = False
-                if self.high_score > 0:
-                    self.high_score = self.elapsed_time if self.elapsed_time < self.high_score else self.high_score
-                else:
-                    self.high_score = self.elapsed_time
-                self.save_score()
+    pygame.draw.rect(screen, (165, 42, 42), pygame.Rect(95, 45, 620, 620))
 
-            if self.start_timer:
-                self.timer = time.time()
-                self.start_timer = False
-            self.elapsed_time = time.time() - self.timer
+    game_over_print = game_over_font.render(game_over_banner, True, (255, 255, 0))
+    screen.blit(game_over_print, (950, 100))
 
-        if self.start_shuffle:
-            self.shuffle()
-            self.draw_tiles()
-            self.shuffle_time += 1
-            if self.shuffle_time > 120:
-                self.start_shuffle = False
-                self.start_game = True
-                self.start_timer = True
+    if move_count == 0:
+        move_count_render = move_count_font.render(move_count_banner, True, (0, 255, 0))
+    else:
+        move_count_render = move_count_font.render(move_count_banner + str(move_count), True, (0, 255, 0))
+    screen.blit(move_count_render, (1050, 200))
 
-        self.all_sprites.update()
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
-    def draw_grid(self):
-        for row in range(-1, GAME_SIZE * TILESIZE, TILESIZE):
-            pygame.draw.line(self.screen, LIGHTGREY, (row, 0), (row, GAME_SIZE * TILESIZE))
-        for col in range(-1, GAME_SIZE * TILESIZE, TILESIZE):
-            pygame.draw.line(self.screen, LIGHTGREY, (0, col), (GAME_SIZE * TILESIZE, col))
+        if event.type == pygame.MOUSEMOTION:
+            x_m_motion, y_m_motion = pygame.mouse.get_pos()
+            for i in range (tile_count):
+                tiles[i].mouse_hover(x_m_motion, y_m_motion)
 
-    def draw(self):
-        self.screen.fill(BGCOLOUR)
-        self.all_sprites.draw(self.screen)
-        self.draw_grid()
-        for button in self.buttons_list:
-            button.draw(self.screen)
-        UIElement(550, 35, "%.3f" % self.elapsed_time).draw(self.screen)
-        UIElement(430, 300, "High Score - %.3f" % (self.high_score if self.high_score > 0 else 0)).draw(self.screen)
-        pygame.display.flip()
+            for i in range(tile_count):
+                if tiles[i].selected and mouse_press:
+                    tiles[i].move_tyle(x_m_motion, y_m_motion)
 
-    def events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                quit(0)
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            mouse_press = True
+            x_m_click, y_m_click = pygame.mouse.get_pos()
+            for i in range(tile_count):
+                tiles[i].mouse_click(x_m_click, y_m_click)
 
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                for row, tiles in enumerate(self.tiles):
-                    for col, tile in enumerate(tiles):
-                        if tile.click(mouse_x, mouse_y):
-                            if tile.right() and self.tiles_grid[row][col + 1] == 0:
-                                self.tiles_grid[row][col], self.tiles_grid[row][col + 1] = self.tiles_grid[row][col + 1], self.tiles_grid[row][col]
+        if event.type == pygame.MOUSEBUTTONUP:
+            mouse_press = False
+            x_m_click_rel, y_m_click_rel = pygame.mouse.get_pos()
+            x_m_click, y_m_click = 0, 0
+            cell_found = False
+            for i in range (0, rows):
+                for j in range(0, cols):
+                    tile_start_pos_x = tile_print_position[(i, j)][0]
+                    tile_start_pos_y = tile_print_position[(i, j)][1]
 
-                            if tile.left() and self.tiles_grid[row][col - 1] == 0:
-                                self.tiles_grid[row][col], self.tiles_grid[row][col - 1] = self.tiles_grid[row][col - 1], self.tiles_grid[row][col]
+                    if (x_m_click_rel > tile_start_pos_x and x_m_click_rel < tile_start_pos_x + tile_width) and (y_m_click_rel > tile_start_pos_y and y_m_click_rel < tile_start_pos_y + tile_depth):
+                        if matrix[i][j] == "":
+                            for k in range(tile_count):
+                                if game_over == False:
+                                    if tiles[k].selected:
+                                        if tiles[k].movable:
+                                            cell_found = True
+                                            dummy = matrix[tiles[k].position_x][tiles[k].position_y]
+                                            matrix[tiles[k].position_x][tiles[k].position_y] = matrix[i][j]
+                                            matrix[i][j] = dummy
+                                            tiles[k].position_x = i
+                                            tiles[k].position_y = j
+                                            tiles[k].start_pos_x = tile_print_position[(i,j)][0]
+                                            tiles[k].start_pos_y = tile_print_position[(i,j)][1]
+                                            move_count += 1
+                                            isGameOver()
+                                            check_mobility()
+                    
+                    if cell_found == False:
+                        for k in range(tile_count):
+                            if tiles[k].selected:
+                                mat_pos_x = tiles[k].position_x
+                                mat_pos_y = tiles[k].position_y
+                                tiles[k].start_pos_x = tile_print_position[(mat_pos_x, mat_pos_y)][0]
+                                tiles[k].start_pos_y = tile_print_position[(mat_pos_x, mat_pos_y)][1]
+                                break
 
-                            if tile.up() and self.tiles_grid[row - 1][col] == 0:
-                                self.tiles_grid[row][col], self.tiles_grid[row - 1][col] = self.tiles_grid[row - 1][col], self.tiles_grid[row][col]
+    for i in range(tile_count):
+        tiles[i].draw_tyle()
 
-                            if tile.down() and self.tiles_grid[row + 1][col] == 0:
-                                self.tiles_grid[row][col], self.tiles_grid[row + 1][col] = self.tiles_grid[row + 1][col], self.tiles_grid[row][col]
+    pygame.display.flip()
 
-                            self.draw_tiles()
-
-                for button in self.buttons_list:
-                    if button.click(mouse_x, mouse_y):
-                        if button.text == "Shuffle":
-                            self.shuffle_time = 0
-                            self.start_shuffle = True
-                        if button.text == "Reset":
-                            self.new()
-
-
-game = Game()
-while True:
-    game.new()
-    game.run()
+pygame.display.update()
